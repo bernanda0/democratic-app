@@ -1,4 +1,4 @@
-import { BadRequestException, Logger, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, Logger, UseFilters, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import {
   OnGatewayInit,
   WebSocketGateway,
@@ -6,11 +6,14 @@ import {
   OnGatewayDisconnect,
   WebSocketServer,
   SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
 } from '@nestjs/websockets';
-import { Namespace, Socket } from 'socket.io';
+import { Namespace } from 'socket.io';
 import { PollsService } from './polls.service';
 import { SocketWithAuth } from './polls.type';
 import { WsCatchAllFilter } from 'src/socket/socket.catch.filter';
+import { GatewayAdminGuard } from './polls.admin.guard';
 
 @UsePipes(new ValidationPipe())
 @UseFilters(new WsCatchAllFilter())
@@ -61,21 +64,46 @@ export class PollsGateway
     this.io.to(roomName).emit('poll_updated', updatedPoll);
   }
 
-  handleDisconnect(client: SocketWithAuth) {
+  async handleDisconnect(client: SocketWithAuth) {
     const sockets = this.io.sockets;
+    
+    const { pollID, userID } = client;
+    this.removeParticipant(userID, client)
 
+    const roomName = client.pollID;
+    const clientCount = this.io.adapter.rooms?.get(roomName)?.size ?? 0;
     this.logger.debug(
       `Socket connected with userID: ${client.userID}, pollID: ${client.pollID}, and name: "${client.name}"`,
     );
-
     this.logger.log(`Disconnected socket id: ${client.id}`);
     this.logger.debug(`Number of connected sockets: ${sockets.size}`);
-
-    // TODO - remove client from poll and send `participants_updated` event to remaining clients
+    this.logger.debug(
+      `Total clients connected to room '${roomName}': ${clientCount}`,
+    );
   }
 
   @SubscribeMessage('test')
   async test() {
     throw new BadRequestException('plain ol');
+  }
+
+  @UseGuards(GatewayAdminGuard)
+  @SubscribeMessage('remove_participant')
+  async removeParticipant(
+    @MessageBody('id') id: string,
+    @ConnectedSocket() client: SocketWithAuth,
+  ) {
+    this.logger.debug(
+      `Attempting to remove participant ${id} from poll ${client.pollID}`,
+    );
+
+    const updatedPoll = await this.pollsService.removeParticipant(
+      client.pollID,
+      id,
+    );
+
+    if (updatedPoll) {
+      this.io.to(client.pollID).emit('poll_updated', updatedPoll);
+    }
   }
 }

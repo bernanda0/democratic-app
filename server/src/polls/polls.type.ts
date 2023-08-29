@@ -1,3 +1,4 @@
+import { Request } from "express";
 import { Socket } from "socket.io";
 
 export type CreatePollFields = {
@@ -31,6 +32,11 @@ export type AddParticipantData = {
   name: string;
 };
 
+export interface RemoveParticipantData {
+  pollID: string;
+  userID: string;
+}
+
 export type TokenPayload = {
   pollID: string;
   userID: string;
@@ -39,7 +45,7 @@ export type TokenPayload = {
 
 export type RequestWithAuth = Request & TokenPayload
 export type SocketWithAuth = Socket & TokenPayload;
-// 
+
 export interface Participants {
     [participantID: string]: string;
 }

@@ -88,7 +88,7 @@ export class PollsService {
     pollID: string,
     userID: string,
   ): Promise<Poll | void> {
-    const poll = await this.pollsRepository.getPoll(pollID);
+    const poll = await this.getPoll(pollID);
 
     if (!poll.hasStarted) {
       const updatedPoll = await this.pollsRepository.removeParticipant(
@@ -99,5 +99,8 @@ export class PollsService {
     }
   }
  
+  async getPoll(pollID: string): Promise<Poll> {
+    return this.pollsRepository.getPoll(pollID);
+  }
   
 }
