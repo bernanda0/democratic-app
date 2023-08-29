@@ -49,5 +49,6 @@ export interface Poll {
     topic: string;
     votesPerVoter: number;
     participants: Participants;
-    adminID: string
+    adminID: string;
+    hasStarted: boolean;
 }
