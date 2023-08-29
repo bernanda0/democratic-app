@@ -4,7 +4,7 @@ import {
     Injectable,
     Logger,
   } from '@nestjs/common';
-  import { JwtService } from '@nestjs/jwt';
+  import { PasetoService } from 'src/paseto/paseto.service';
   import { WsUnauthorizedException } from 'src/socket/socket.exceptions';
   import { PollsService } from './polls.service';
   import { TokenPayload, SocketWithAuth } from './polls.type';
@@ -14,7 +14,7 @@ import {
     private readonly logger = new Logger(GatewayAdminGuard.name);
     constructor(
       private readonly pollsService: PollsService,
-      private readonly jwtService: JwtService,
+      private readonly pasetoService: PasetoService,
     ) {}
     async canActivate(context: ExecutionContext): Promise<boolean> {
       // regular `Socket` from socket.io is probably sufficient
@@ -31,17 +31,16 @@ import {
       }
   
       try {
-        const payload = this.jwtService.verify<TokenPayload & { sub: string }>(
-          token,
-        );
+        const payload = await this.pasetoService.verifyToken(token);
   
         this.logger.debug(`Validating admin using token payload`, payload);
   
-        const { sub, pollID } = payload;
+        const { userID, pollID } = payload;
   
         const poll = await this.pollsService.getPoll(pollID);
   
-        if (sub !== poll.adminID) {
+        if (userID !== poll.adminID) {
+          this.logger.log("User unauthorized to do this action")
           throw new WsUnauthorizedException('Admin privileges required');
         }
   

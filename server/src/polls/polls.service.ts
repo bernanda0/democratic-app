@@ -1,14 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { createPollID, createUserID } from 'src/utils/id';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { createNominationID, createPollID, createUserID } from 'src/utils/id';
 import {
+  AddNominationFields,
   AddParticipantData,
   CreatePollFields,
   JoinPollFields,
   Poll,
   RejoinPollFields,
+  SubmitRankingsFields,
 } from './polls.type';
 import { PollsRepository } from './polls.repository';
 import { PasetoService } from 'src/paseto/paseto.service';
+import { log } from 'console';
 
 @Injectable()
 export class PollsService {
@@ -58,12 +61,6 @@ export class PollsService {
       name: fields.name,
     });
 
-    await this.pollsRepository.addParticipant({
-      pollID: fields.pollID,
-      userID: userID,
-      name: fields.name,
-    });
-
     return {
       poll: joinedPoll,
       access_token: access_token,
@@ -89,18 +86,52 @@ export class PollsService {
     userID: string,
   ): Promise<Poll | void> {
     const poll = await this.getPoll(pollID);
-
     if (!poll.hasStarted) {
       const updatedPoll = await this.pollsRepository.removeParticipant(
         pollID,
         userID,
       );
+      this.logger.log('Success removing participant with id ', userID);
       return updatedPoll;
     }
   }
- 
+
   async getPoll(pollID: string): Promise<Poll> {
     return this.pollsRepository.getPoll(pollID);
   }
-  
+
+  async addNomination({
+    pollID,
+    userID,
+    text,
+  }: AddNominationFields): Promise<Poll> {
+    return this.pollsRepository.addNomination({
+      pollID,
+      nominationID: createNominationID(),
+      nomination: {
+        userID,
+        text,
+      },
+    });
+  }
+
+  async removeNomination(pollID: string, nominationID: string): Promise<Poll> {
+    return this.pollsRepository.removeNomination(pollID, nominationID);
+  }
+
+  async startPoll(pollID: string): Promise<Poll> {
+    return this.pollsRepository.startPoll(pollID);
+  }
+
+  async submitRankings(rankingsData: SubmitRankingsFields): Promise<Poll> {
+    const poll = await this.pollsRepository.getPoll(rankingsData.pollID);
+
+    if (!poll.hasStarted) {
+      throw new BadRequestException(
+        'Participants cannot rank until the poll has started.',
+      );
+    }
+
+    return this.pollsRepository.addParticipantRankings(rankingsData);
+  }
 }

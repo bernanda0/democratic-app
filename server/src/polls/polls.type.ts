@@ -18,6 +18,18 @@ export type RejoinPollFields = {
   name: string;
 };
 
+export type AddNominationFields = {
+  pollID: string;
+  userID: string;
+  text: string;
+};
+
+export type SubmitRankingsFields = {
+  pollID: string;
+  userID: string;
+  rankings: string[];
+};
+
 // repository types
 export type CreatePollData = {
   pollID: string;
@@ -37,6 +49,18 @@ export interface RemoveParticipantData {
   userID: string;
 }
 
+export type AddNominationData = {
+  pollID: string;
+  nominationID: string;
+  nomination: Nomination;
+};
+
+export type AddParticipantRankingsData = {
+  pollID: string;
+  userID: string;
+  rankings: string[];
+};
+
 export type TokenPayload = {
   pollID: string;
   userID: string;
@@ -50,11 +74,29 @@ export interface Participants {
     [participantID: string]: string;
 }
 
-export interface Poll {
-    id: string;
-    topic: string;
-    votesPerVoter: number;
-    participants: Participants;
-    adminID: string;
-    hasStarted: boolean;
+export type Nomination = {
+  userID: string;
+  text: string;
+}
+
+export type Nominations = {
+  [nominationID: string]: Nomination;
+}
+
+type NominationID = string;
+
+export type Rankings = {
+  [userID: string]: NominationID[];
+};
+
+export type Poll = {
+  id: string;
+  topic: string;
+  votesPerVoter: number;
+  participants: Participants;
+  adminID: string;
+  nominations: Nominations;
+  rankings: Rankings;
+  // results: Results;
+  hasStarted: boolean;
 }

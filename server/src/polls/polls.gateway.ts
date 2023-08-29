@@ -14,6 +14,7 @@ import { PollsService } from './polls.service';
 import { SocketWithAuth } from './polls.type';
 import { WsCatchAllFilter } from 'src/socket/socket.catch.filter';
 import { GatewayAdminGuard } from './polls.admin.guard';
+import { NominationDto } from './polls.dto';
 
 @UsePipes(new ValidationPipe())
 @UseFilters(new WsCatchAllFilter())
@@ -105,5 +106,69 @@ export class PollsGateway
     if (updatedPoll) {
       this.io.to(client.pollID).emit('poll_updated', updatedPoll);
     }
+  }
+
+  @SubscribeMessage('nominate')
+  async nominate(
+    @MessageBody() nomination: NominationDto,
+    @ConnectedSocket() client: SocketWithAuth,
+  ): Promise<void> {
+    this.logger.debug(
+      `Attempting to add nomination for user ${client.userID} to poll ${client.pollID}\n${nomination.text}`,
+    );
+
+    const updatedPoll = await this.pollsService.addNomination({
+      pollID: client.pollID,
+      userID: client.userID,
+      text: nomination.text,
+    });
+
+    this.io.to(client.pollID).emit('poll_updated', updatedPoll);
+  }
+
+  @UseGuards(GatewayAdminGuard)
+  @SubscribeMessage('remove_nomination')
+  async removeNomination(
+    @MessageBody('id') nominationID: string,
+    @ConnectedSocket() client: SocketWithAuth,
+  ): Promise<void> {
+    this.logger.debug(
+      `Attempting to remove nomination ${nominationID} from poll ${client.pollID}`,
+    );
+
+    const updatedPoll = await this.pollsService.removeNomination(
+      client.pollID,
+      nominationID,
+    );
+
+    this.io.to(client.pollID).emit('poll_updated', updatedPoll);
+  }
+
+  @UseGuards(GatewayAdminGuard)
+  @SubscribeMessage('start_vote')
+  async startVote(@ConnectedSocket() client: SocketWithAuth): Promise<void> {
+    this.logger.debug(`Attempting to start voting for poll: ${client.pollID}`);
+
+    const updatedPoll = await this.pollsService.startPoll(client.pollID);
+
+    this.io.to(client.pollID).emit('poll_updated', updatedPoll);
+  }
+
+  @SubscribeMessage('submit_rankings')
+  async submitRankings(
+    @ConnectedSocket() client: SocketWithAuth,
+    @MessageBody('rankings') rankings: string[],
+  ): Promise<void> {
+    this.logger.debug(
+      `Submitting votes for user: ${client.userID} belonging to pollID: "${client.pollID}"`,
+    );
+
+    const updatedPoll = await this.pollsService.submitRankings({
+      pollID: client.pollID,
+      userID: client.userID,
+      rankings,
+    });
+
+    this.io.to(client.pollID).emit('poll_updated', updatedPoll);
   }
 }
