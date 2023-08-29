@@ -6,10 +6,11 @@ import { redisModule } from 'src/redis/redis.module.config';
 import { PollsRepository } from './polls.repository';
 import { PasetoModule } from 'src/paseto/paseto.module';
 import { PasetoService } from 'src/paseto/paseto.service';
+import { PollsGateway } from './polls.gateway';
 
 @Module({
     imports: [ConfigModule, redisModule, PasetoModule],
     controllers: [PollsController],
-    providers: [PollsService, PollsRepository]
+    providers: [PollsService, PollsRepository, PollsGateway]
 })
 export class PollsModule {}

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SocketIOAdapter } from './socket/socket.io.adapter';
 
 async function bootstrap() {
   const logger = new Logger('Main');
@@ -12,17 +13,21 @@ async function bootstrap() {
   const clientPort = parseInt(configService.get('CLIENT_PORT'));
   app.enableCors({
     origin: [
-      `http://localhost:${clientPort}`
+      `http://127.0.0.1:${clientPort}`
     ],
   });
 
   // Validator middleware
   app.useGlobalPipes(new ValidationPipe());
 
-  const port = parseInt(configService.get('PORT'));
-  await app.listen(port);
+  // socket
+  app.useWebSocketAdapter(new SocketIOAdapter(app, configService));
 
-  logger.log(`Server running on port ${port}`);
+  const port = parseInt(configService.get('PORT'));
+  const ipAddress = '127.0.0.1';
+  await app.listen(port, ipAddress);
+
+  logger.log(`Server running on host ${ipAddress}:${port}`);
 }
 
 bootstrap();

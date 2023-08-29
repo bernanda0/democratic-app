@@ -1,3 +1,5 @@
+import { Socket } from "socket.io";
+
 export type CreatePollFields = {
   topic: string;
   votesPerVoter: number;
@@ -36,6 +38,7 @@ export type TokenPayload = {
 }
 
 export type RequestWithAuth = Request & TokenPayload
+export type SocketWithAuth = Socket & TokenPayload;
 // 
 export interface Participants {
     [participantID: string]: string;
