@@ -6,11 +6,15 @@ import {
   RejoinPollFields,
 } from './polls.type';
 import { PollsRepository } from './polls.repository';
+import { PasetoService } from 'src/paseto/paseto.service';
 
 @Injectable()
 export class PollsService {
   private readonly logger = new Logger(PollsService.name);
-  constructor(private readonly pollsRepository: PollsRepository) {}
+  constructor(
+    private readonly pollsRepository: PollsRepository,
+    private readonly pasetoService: PasetoService,
+  ) {}
 
   async createPoll(fields: CreatePollFields) {
     const pollID = createPollID();
@@ -22,34 +26,45 @@ export class PollsService {
       ...fields,
     });
 
-    // TODO - create an access token of pollID and userID
+    const access_token = await this.pasetoService.createToken({
+      pollID: pollID,
+      userID: userID,
+      name: fields.name,
+    });
+
     return {
       poll: createdPoll,
-      // access token
+      access_token: access_token,
     };
   }
 
   async joinPoll(fields: JoinPollFields) {
     const userID = createUserID();
 
-    // this.logger.debug(
-    //   `Fetching poll with ID: ${fields.pollID} for user with ID: ${userID}`,
-    // );
-    // const joinedPoll = await this.pollsRepository.getPoll(fields.pollID);
+    this.logger.debug(
+      `Fetching poll with ID: ${fields.pollID} for user with ID: ${userID}`,
+    );
+    const joinedPoll = await this.pollsRepository.getPoll(fields.pollID);
 
     this.logger.debug(
       `Joiining poll with ID: ${fields.pollID} for user with ID: ${userID} with name: ${fields.name}`,
     );
 
-    const joinedPoll = await this.pollsRepository.addParticipant({
-        pollID: fields.pollID,
-        userID: userID,
-        name: fields.name,
+    const access_token = await this.pasetoService.createToken({
+      pollID: joinedPoll.id,
+      userID: userID,
+      name: fields.name,
+    });
+
+    await this.pollsRepository.addParticipant({
+      pollID: fields.pollID,
+      userID: userID,
+      name: fields.name,
     });
 
     return {
       poll: joinedPoll,
-      // access token,
+      access_token: access_token,
     };
   }
 

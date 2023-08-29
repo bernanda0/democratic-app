@@ -1,10 +1,12 @@
-import { Body, Controller, Logger, Post } from '@nestjs/common';
+import { Body, Controller, Logger, Post, Req, UseGuards } from '@nestjs/common';
 import { CreatePollDto, JoinPollDto } from './polls.dto';
 import { PollsService } from './polls.service';
+import { ControllerPollsGuard } from './polls.guard';
+import { RequestWithAuth } from './polls.type';
 
 @Controller('polls')
 export class PollsController {
-  constructor(private pollsService: PollsService){};
+  constructor(private pollsService: PollsService) {}
 
   @Post()
   async create(@Body() createPollDto: CreatePollDto) {
@@ -20,12 +22,14 @@ export class PollsController {
     return result;
   }
 
+  @UseGuards(ControllerPollsGuard)
   @Post('/rejoin')
-  async rejoin() {
+  async rejoin(@Req() request: RequestWithAuth) {
+    const { pollID, userID, name } = request;
     const result = await this.pollsService.rejoinPoll({
-      name: 'will be using jwt/paseto',
-      pollID: 'will be using jwt/paseto',
-      userID: 'will be using jwt/paseto',
+      pollID: pollID,
+      userID: userID,
+      name: name
     });
 
     return result;

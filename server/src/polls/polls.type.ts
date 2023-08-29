@@ -29,7 +29,13 @@ export type AddParticipantData = {
   name: string;
 };
 
+export type TokenPayload = {
+  pollID: string;
+  userID: string;
+  name: string;
+}
 
+export type RequestWithAuth = Request & TokenPayload
 // 
 export interface Participants {
     [participantID: string]: string;
